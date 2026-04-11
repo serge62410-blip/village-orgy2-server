@@ -25,10 +25,11 @@ function save() {
 load();
 
 // =========================
+// 🎯 XP RULE (MODIFIÉ)
 function xpRule(count) {
     return count >= 2
-        ? { xp: 5, interval: 20000 }
-        : { xp: 1, interval: 40000 };
+        ? { xp: 5, interval: 30000 }   // 👥
+        : { xp: 1, interval: 50000 };  // 👤
 }
 
 function xpNeeded(level) {
@@ -36,12 +37,14 @@ function xpNeeded(level) {
 }
 
 // =========================
+// 🔥 UPDATE FIX
 function update(av) {
     if (!av.last) av.last = Date.now();
-    if (!av.seated) return;
+
+    if (!av.seated || av.seatedCount <= 0) return;
 
     const now = Date.now();
-    const rule = xpRule(av.seatedCount || 0);
+    const rule = xpRule(av.seatedCount);
 
     const diff = now - av.last;
     const ticks = Math.floor(diff / rule.interval);
@@ -58,7 +61,7 @@ function update(av) {
 }
 
 // =========================
-// 🔐 AUTH FIX UNIVERSEL (IMPORTANT)
+// 🔐 AUTH
 function checkKey(req, res) {
     const key = (req.headers["x-vog2-key"] || "").toString().trim();
     if (key !== SECRET) {
@@ -69,7 +72,7 @@ function checkKey(req, res) {
 }
 
 // =========================
-// 📡 STATUS
+// 📡 STATUS (MODIFIÉ)
 app.post("/v2/status/:id", (req, res) => {
     if (!checkKey(req, res)) return;
 
@@ -87,10 +90,21 @@ app.post("/v2/status/:id", (req, res) => {
 
     const av = avatars[id];
 
+    const wasSeated = av.seated;
+
     av.seated = !!req.body.seated;
     av.seatedCount = Math.max(0, Math.min(10, parseInt(req.body.seatedCount) || 0));
 
-    update(av);
+    // 🔴 RESET si debout
+    if (!av.seated || av.seatedCount <= 0) {
+        av.last = Date.now();
+    }
+
+    // 🔥 UPDATE seulement si assis
+    if (av.seated && av.seatedCount > 0) {
+        update(av);
+    }
+
     save();
 
     res.json({
