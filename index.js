@@ -25,11 +25,10 @@ function save() {
 load();
 
 // =========================
-// 🎯 XP RULE (MODIFIÉ)
 function xpRule(count) {
     return count >= 2
-        ? { xp: 5, interval: 30000 }   // 👥
-        : { xp: 1, interval: 50000 };  // 👤
+        ? { xp: 5, interval: 30000 }
+        : { xp: 1, interval: 50000 };
 }
 
 function xpNeeded(level) {
@@ -37,10 +36,8 @@ function xpNeeded(level) {
 }
 
 // =========================
-// 🔥 UPDATE FIX
 function update(av) {
     if (!av.last) av.last = Date.now();
-
     if (!av.seated || av.seatedCount <= 0) return;
 
     const now = Date.now();
@@ -61,7 +58,6 @@ function update(av) {
 }
 
 // =========================
-// 🔐 AUTH
 function checkKey(req, res) {
     const key = (req.headers["x-vog2-key"] || "").toString().trim();
     if (key !== SECRET) {
@@ -72,7 +68,6 @@ function checkKey(req, res) {
 }
 
 // =========================
-// 📡 STATUS (MODIFIÉ)
 app.post("/v2/status/:id", (req, res) => {
     if (!checkKey(req, res)) return;
 
@@ -90,17 +85,13 @@ app.post("/v2/status/:id", (req, res) => {
 
     const av = avatars[id];
 
-    const wasSeated = av.seated;
-
     av.seated = !!req.body.seated;
     av.seatedCount = Math.max(0, Math.min(10, parseInt(req.body.seatedCount) || 0));
 
-    // 🔴 RESET si debout
     if (!av.seated || av.seatedCount <= 0) {
         av.last = Date.now();
     }
 
-    // 🔥 UPDATE seulement si assis
     if (av.seated && av.seatedCount > 0) {
         update(av);
     }
@@ -109,12 +100,12 @@ app.post("/v2/status/:id", (req, res) => {
 
     res.json({
         xp: av.xp,
-        level: av.level
+        level: av.level,
+        multiplier: multiplier
     });
 });
 
 // =========================
-// 🏆 TOP
 app.get("/v2/top", (req, res) => {
     const list = Object.entries(avatars);
 
@@ -133,15 +124,16 @@ app.get("/v2/top", (req, res) => {
 });
 
 // =========================
-// ⚙️ ADMIN
 app.post("/v2/admin/multiplier/:v", (req, res) => {
     if (!checkKey(req, res)) return;
 
     multiplier = Math.max(1, parseInt(req.params.v) || 1);
+
     res.json({ multiplier });
 });
 
-app.post("/v2/admin/reset", (req, res) => {
+// =========================
+app.post("/v2/admin/reset_all", (req, res) => {
     if (!checkKey(req, res)) return;
 
     avatars = {};
@@ -153,5 +145,5 @@ app.post("/v2/admin/reset", (req, res) => {
 // =========================
 const PORT = process.env.PORT || 3010;
 app.listen(PORT, () => {
-    console.log("Server OK on port " + PORT);
+    console.log("Server running on " + PORT);
 });
