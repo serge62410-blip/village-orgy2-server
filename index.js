@@ -58,8 +58,10 @@ function update(av) {
 }
 
 // =========================
+// 🔐 FIX 403 (QUERY KEY)
 function checkKey(req, res) {
-    const key = (req.headers["x-vog2-key"] || "").toString().trim();
+    const key = (req.query.key || "").toString().trim();
+
     if (key !== SECRET) {
         res.status(403).json({ error: "Forbidden" });
         return false;
@@ -86,13 +88,13 @@ app.post("/v2/status/:id", (req, res) => {
     const av = avatars[id];
 
     av.seated = !!req.body.seated;
-    av.seatedCount = Math.max(0, Math.min(10, parseInt(req.body.seatedCount) || 0));
+    av.seatedCount = Math.max(0, parseInt(req.body.seatedCount) || 0);
 
     if (!av.seated || av.seatedCount <= 0) {
         av.last = Date.now();
     }
 
-    if (av.seated && av.seatedCount > 0) {
+    if (av.seated) {
         update(av);
     }
 
@@ -106,28 +108,12 @@ app.post("/v2/status/:id", (req, res) => {
 });
 
 // =========================
-app.get("/v2/top", (req, res) => {
-    const list = Object.entries(avatars);
-
-    list.sort((a, b) =>
-        (b[1].level * 1000 + b[1].xp) -
-        (a[1].level * 1000 + a[1].xp)
-    );
-
-    res.json({
-        top: list.slice(0, 10).map(p => ({
-            id: p[0],
-            level: p[1].level,
-            xp: p[1].xp
-        }))
-    });
-});
-
-// =========================
 app.post("/v2/admin/multiplier/:v", (req, res) => {
     if (!checkKey(req, res)) return;
 
     multiplier = Math.max(1, parseInt(req.params.v) || 1);
+
+    console.log("Multiplier =", multiplier);
 
     res.json({ multiplier });
 });
@@ -143,7 +129,6 @@ app.post("/v2/admin/reset_all", (req, res) => {
 });
 
 // =========================
-const PORT = process.env.PORT || 3010;
-app.listen(PORT, () => {
-    console.log("Server running on " + PORT);
+app.listen(3010, () => {
+    console.log("Server OK");
 });
