@@ -1,0 +1,15 @@
+{
+  "name": "village-orgy2-server",
+  "version": "1.0.0",
+  "description": "Village Orgy 2 XP Server",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
