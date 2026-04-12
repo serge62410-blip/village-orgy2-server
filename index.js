@@ -25,11 +25,10 @@ function save() {
 load();
 
 // =========================
-// ✅ règles corrigées
 function xpRule(count) {
     return count >= 2
-        ? { xp: 5, interval: 30000 }  // 30 sec
-        : { xp: 1, interval: 60000 }; // 60 sec
+        ? { xp: 5, interval: 30000 }
+        : { xp: 1, interval: 60000 };
 }
 
 function xpNeeded(level) {
@@ -60,7 +59,6 @@ function update(av) {
 // =========================
 function checkKey(req, res) {
     const key = (req.query.key || "").toString().trim();
-
     if (key !== SECRET) {
         res.status(403).json({ error: "Forbidden" });
         return false;
@@ -69,7 +67,6 @@ function checkKey(req, res) {
 }
 
 // =========================
-// 🔥 FIX MAJEUR UNSIT
 app.post("/v2/status/:id", (req, res) => {
     if (!checkKey(req, res)) return;
 
@@ -92,15 +89,13 @@ app.post("/v2/status/:id", (req, res) => {
     av.seated = !!req.body.seated;
     av.seatedCount = Math.max(0, parseInt(req.body.seatedCount) || 0);
 
-    // 🔥 calcul final quand on se lève
+    if (av.seated && av.seatedCount > 0) {
+        update(av);
+    }
+
     if (wasSeated && (!av.seated || av.seatedCount <= 0)) {
         update(av);
         av.last = Date.now();
-    }
-
-    // 🔥 update normal
-    if (av.seated && av.seatedCount > 0) {
-        update(av);
     }
 
     save();
@@ -108,7 +103,7 @@ app.post("/v2/status/:id", (req, res) => {
     res.json({
         xp: av.xp,
         level: av.level,
-        multiplier: multiplier
+        multiplier
     });
 });
 
@@ -117,7 +112,6 @@ app.post("/v2/admin/multiplier/:v", (req, res) => {
     if (!checkKey(req, res)) return;
 
     multiplier = Math.max(1, parseInt(req.params.v) || 1);
-
     res.json({ multiplier });
 });
 
