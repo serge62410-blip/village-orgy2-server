@@ -30,7 +30,6 @@ function xpRule(count) {
     return { xp: 1, interval: 60000 };
 }
 
-// =========================
 function xpNeeded(level) {
     return 100 + level * 20;
 }
@@ -59,7 +58,7 @@ function process(av) {
 
     if (!av.lastTick) av.lastTick = now;
 
-    const rule = xpRule(av.seatedCount);
+    let rule = xpRule(av.seatedCount);
 
     if (now - av.lastTick >= rule.interval) {
         av.lastTick = now;
@@ -71,7 +70,6 @@ function process(av) {
         while (av.xp >= need) {
             av.xp -= need;
             av.level += 1;
-            av.levelUp = true;
         }
     }
 }
@@ -88,14 +86,13 @@ app.post("/v2/event/:id", (req, res) => {
             level: 1,
             seatedCount: 0,
             active: false,
-            lastTick: 0,
-            levelUp: false
+            lastTick: 0
         };
     }
 
     let av = avatars[id];
 
-    let seated = req.body.seated;
+    let seated = !!req.body.seated;
     let count = parseInt(req.body.count);
 
     if (!count) count = 0;
@@ -116,8 +113,7 @@ app.post("/v2/event/:id", (req, res) => {
         return res.json({
             xp: av.xp,
             level: av.level,
-            status: "OFF",
-            levelUp: false
+            status: "OFF"
         });
     }
 
@@ -125,16 +121,12 @@ app.post("/v2/event/:id", (req, res) => {
 
     if (av.active) process(av);
 
-    let lvlUp = av.levelUp;
-    av.levelUp = false;
-
     save();
 
     res.json({
         xp: av.xp,
         level: av.level,
-        status: getStatus(av.seatedCount),
-        levelUp: lvlUp
+        status: getStatus(av.seatedCount)
     });
 });
 
@@ -157,4 +149,4 @@ app.post("/v2/admin/multiplier/:v", (req, res) => {
     res.json({ multiplier });
 });
 
-app.listen(3010, () => console.log("NODE CORE READY"));
+app.listen(3010, () => console.log("NODE READY"));
