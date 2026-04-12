@@ -55,7 +55,7 @@ function getStatus(count) {
 
 // =========================
 function processXP(av) {
-    if (!av.sessionActive) return;
+    if (!av.active) return;
 
     const now = Date.now();
     const rule = xpRule(av.seatedCount);
@@ -67,12 +67,12 @@ function processXP(av) {
 
         av.xp += rule.xp * multiplier;
 
-        let needed = xpNeeded(av.level);
+        let need = xpNeeded(av.level);
 
-        while (av.xp >= needed) {
-            av.xp -= needed;
+        while (av.xp >= need) {
+            av.xp -= need;
             av.level++;
-            needed = xpNeeded(av.level);
+            need = xpNeeded(av.level);
         }
     }
 }
@@ -88,7 +88,7 @@ app.post("/v2/status/:id", (req, res) => {
             xp: 0,
             level: 1,
             seatedCount: 0,
-            sessionActive: false,
+            active: false,
             lastTick: 0
         };
     }
@@ -99,17 +99,17 @@ app.post("/v2/status/:id", (req, res) => {
     const nowCount = Math.max(0, parseInt(req.body.seatedCount) || 0);
 
     // =========================
-    // 🔥 START SESSION
-    if (!av.sessionActive && nowSeated && nowCount > 0) {
-        av.sessionActive = true;
+    // START SESSION
+    if (!av.active && nowSeated && nowCount > 0) {
+        av.active = true;
         av.seatedCount = nowCount;
-        av.lastTick = Date.now(); // clean start
+        av.lastTick = Date.now();
     }
 
     // =========================
-    // 🔥 STOP SESSION
-    if (av.sessionActive && (!nowSeated || nowCount <= 0)) {
-        av.sessionActive = false;
+    // STOP SESSION
+    if (av.active && (!nowSeated || nowCount <= 0)) {
+        av.active = false;
         av.seatedCount = 0;
 
         save();
@@ -124,7 +124,7 @@ app.post("/v2/status/:id", (req, res) => {
 
     av.seatedCount = nowCount;
 
-    if (av.sessionActive) {
+    if (av.active) {
         processXP(av);
     }
 
