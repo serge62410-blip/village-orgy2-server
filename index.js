@@ -39,30 +39,34 @@ function checkKey(req, res) {
 }
 
 // =========================
-function getStatus(count) {
+function getStatus(count)
+{
     if (count <= 0) return "OFF";
     if (count === 1) return "WAIT";
     return "ACTIVE";
 }
 
 // =========================
-function process(av) {
+function process(av)
+{
     if (!av.active) return;
 
     const now = Date.now();
 
     if (!av.lastTick) av.lastTick = now;
 
-    const interval = 40000; // FIX: 40 sec
+    const interval = 40000;
 
-    if (now - av.lastTick >= interval) {
+    if (now - av.lastTick >= interval)
+    {
         av.lastTick = now;
 
         av.xp += 5 * multiplier;
 
         let need = xpNeeded(av.level);
 
-        while (av.xp >= need) {
+        while (av.xp >= need)
+        {
             av.xp -= need;
             av.level += 1;
         }
@@ -70,13 +74,16 @@ function process(av) {
 }
 
 // =========================
-app.post("/v2/event/:id", (req, res) => {
+app.post("/v2/event/:id", (req, res) =>
+{
     if (!checkKey(req, res)) return;
 
     const id = req.params.id;
 
-    if (!avatars[id]) {
-        avatars[id] = {
+    if (!avatars[id])
+    {
+        avatars[id] =
+        {
             xp: 0,
             level: 1,
             seatedCount: 0,
@@ -93,8 +100,9 @@ app.post("/v2/event/:id", (req, res) => {
     if (!count) count = 0;
 
     // =========================
-    // STOP SESSION
-    if (seated === false || count <= 0) {
+    // STOP
+    if (seated === false || count <= 0)
+    {
         av.active = false;
         av.seatedCount = 0;
 
@@ -108,19 +116,21 @@ app.post("/v2/event/:id", (req, res) => {
     }
 
     // =========================
-    // UPDATE COUNT
     av.seatedCount = count;
 
     // =========================
-    // START ONLY IF 2+
-    if (av.seatedCount >= 2) {
+    // RULE CORE
+    if (av.seatedCount >= 2)
+    {
         av.active = true;
-    } else {
+    }
+    else
+    {
         av.active = false;
     }
 
-    // =========================
-    if (av.active) {
+    if (av.active)
+    {
         process(av);
     }
 
@@ -134,6 +144,25 @@ app.post("/v2/event/:id", (req, res) => {
 });
 
 // =========================
-app.listen(3010, () => {
-    console.log("CORE FIXED READY");
+app.post("/v2/admin/reset", (req, res) =>
+{
+    if (!checkKey(req, res)) return;
+
+    avatars = {};
+    save();
+
+    res.json({ ok: true });
 });
+
+// =========================
+app.post("/v2/admin/multiplier/:v", (req, res) =>
+{
+    if (!checkKey(req, res)) return;
+
+    multiplier = parseInt(req.params.v);
+    if (!multiplier) multiplier = 1;
+
+    res.json({ multiplier });
+});
+
+app.listen(3010, () => console.log("🔥 NODE CORE READY"));
