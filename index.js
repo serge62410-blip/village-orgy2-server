@@ -10,28 +10,36 @@ let avatars = {};
 let multiplier = 1;
 
 // =========================
-function load() {
-    try {
+function load()
+{
+    try
+    {
         avatars = JSON.parse(fs.readFileSync("data.json"));
-    } catch {
+    }
+    catch
+    {
         avatars = {};
     }
 }
 
-function save() {
+function save()
+{
     fs.writeFileSync("data.json", JSON.stringify(avatars, null, 2));
 }
 
 load();
 
 // =========================
-function xpNeeded(level) {
+function xpNeeded(level)
+{
     return 100 + level * 20;
 }
 
 // =========================
-function checkKey(req, res) {
-    if ((req.query.key || "") !== SECRET) {
+function checkKey(req, res)
+{
+    if ((req.query.key || "") !== SECRET)
+    {
         res.status(403).json({ error: "Forbidden" });
         return false;
     }
@@ -118,20 +126,13 @@ app.post("/v2/event/:id", (req, res) =>
     // =========================
     av.seatedCount = count;
 
-    // RULE CORE
     if (av.seatedCount >= 2)
-    {
         av.active = true;
-    }
     else
-    {
         av.active = false;
-    }
 
     if (av.active)
-    {
         process(av);
-    }
 
     save();
 
