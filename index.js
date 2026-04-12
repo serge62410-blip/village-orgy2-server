@@ -25,10 +25,11 @@ function save() {
 load();
 
 // =========================
+// ✅ règles corrigées
 function xpRule(count) {
     return count >= 2
-        ? { xp: 5, interval: 30000 }
-        : { xp: 1, interval: 50000 };
+        ? { xp: 5, interval: 30000 }  // 30 sec
+        : { xp: 1, interval: 60000 }; // 60 sec
 }
 
 function xpNeeded(level) {
@@ -68,6 +69,7 @@ function checkKey(req, res) {
 }
 
 // =========================
+// 🔥 FIX MAJEUR UNSIT
 app.post("/v2/status/:id", (req, res) => {
     if (!checkKey(req, res)) return;
 
@@ -85,14 +87,20 @@ app.post("/v2/status/:id", (req, res) => {
 
     const av = avatars[id];
 
+    const wasSeated = av.seated;
+
     av.seated = !!req.body.seated;
     av.seatedCount = Math.max(0, parseInt(req.body.seatedCount) || 0);
 
-    // 🔥 FIX : calcule XP avant reset
-    update(av);
-
-    if (!av.seated || av.seatedCount <= 0) {
+    // 🔥 calcul final quand on se lève
+    if (wasSeated && (!av.seated || av.seatedCount <= 0)) {
+        update(av);
         av.last = Date.now();
+    }
+
+    // 🔥 update normal
+    if (av.seated && av.seatedCount > 0) {
+        update(av);
     }
 
     save();
@@ -110,12 +118,9 @@ app.post("/v2/admin/multiplier/:v", (req, res) => {
 
     multiplier = Math.max(1, parseInt(req.params.v) || 1);
 
-    console.log("Multiplier =", multiplier);
-
     res.json({ multiplier });
 });
 
-// =========================
 app.post("/v2/admin/reset_all", (req, res) => {
     if (!checkKey(req, res)) return;
 
