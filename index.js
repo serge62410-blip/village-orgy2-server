@@ -35,6 +35,8 @@ function xpNeeded(level) {
     return 100 + level * 20;
 }
 
+// =========================
+// 🔥 UPDATE XP
 function update(av) {
     if (!av.last) av.last = Date.now();
     if (!av.seated || av.seatedCount <= 0) return;
@@ -67,6 +69,7 @@ function checkKey(req, res) {
 }
 
 // =========================
+// 🔥 FIX ANTI CATCH-UP
 app.post("/v2/status/:id", (req, res) => {
     if (!checkKey(req, res)) return;
 
@@ -86,16 +89,48 @@ app.post("/v2/status/:id", (req, res) => {
 
     const wasSeated = av.seated;
 
-    av.seated = !!req.body.seated;
-    av.seatedCount = Math.max(0, parseInt(req.body.seatedCount) || 0);
+    const nowSeated = !!req.body.seated;
+    const nowCount = Math.max(0, parseInt(req.body.seatedCount) || 0);
+
+    // =========================
+    // 🔥 CAS 1 : se rassoit → RESET TIMER (IMPORTANT)
+    if (!wasSeated && nowSeated && nowCount > 0) {
+        av.seated = true;
+        av.seatedCount = nowCount;
+        av.last = Date.now(); // 🔥 reset anti catch-up
+
+        save();
+
+        return res.json({
+            xp: av.xp,
+            level: av.level,
+            multiplier
+        });
+    }
+
+    // =========================
+    // 🔥 CAS 2 : se lève → STOP XP propre
+    if (wasSeated && (!nowSeated || nowCount <= 0)) {
+        av.seated = false;
+        av.seatedCount = 0;
+        av.last = Date.now();
+
+        save();
+
+        return res.json({
+            xp: av.xp,
+            level: av.level,
+            multiplier
+        });
+    }
+
+    // =========================
+    // 🔥 CAS 3 : reste assis
+    av.seated = nowSeated;
+    av.seatedCount = nowCount;
 
     if (av.seated && av.seatedCount > 0) {
         update(av);
-    }
-
-    if (wasSeated && (!av.seated || av.seatedCount <= 0)) {
-        update(av);
-        av.last = Date.now();
     }
 
     save();
@@ -125,6 +160,4 @@ app.post("/v2/admin/reset_all", (req, res) => {
 });
 
 // =========================
-app.listen(3010, () => {
-    console.log("Server OK");
-});
+app.listen(3010, () => console.log("Server OK"));
