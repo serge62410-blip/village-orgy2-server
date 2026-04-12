@@ -31,7 +31,6 @@ function xpRule(count) {
         : { xp: 1, interval: 60000 };
 }
 
-// =========================
 function xpNeeded(level) {
     return 100 + level * 20;
 }
@@ -39,6 +38,7 @@ function xpNeeded(level) {
 // =========================
 function checkKey(req, res) {
     const key = (req.query.key || "").toString().trim();
+
     if (key !== SECRET) {
         res.status(403).json({ error: "Forbidden" });
         return false;
@@ -47,7 +47,6 @@ function checkKey(req, res) {
 }
 
 // =========================
-// 🔥 STATUS LOGIC
 function getStatus(count) {
     if (count <= 0) return "OFF";
     if (count === 1) return "WAIT";
@@ -55,7 +54,6 @@ function getStatus(count) {
 }
 
 // =========================
-// 🔥 CORE SESSION XP ENGINE (NO CATCH-UP)
 function processXP(av) {
     if (!av.sessionActive) return;
 
@@ -101,7 +99,7 @@ app.post("/v2/status/:id", (req, res) => {
     const nowCount = Math.max(0, parseInt(req.body.seatedCount) || 0);
 
     // =========================
-    // 🪑 START SESSION
+    // 🔥 START SESSION
     if (!av.sessionActive && nowSeated && nowCount > 0) {
         av.sessionActive = true;
         av.seatedCount = nowCount;
@@ -109,7 +107,7 @@ app.post("/v2/status/:id", (req, res) => {
     }
 
     // =========================
-    // 🧍 STOP SESSION
+    // 🔥 STOP SESSION
     if (av.sessionActive && (!nowSeated || nowCount <= 0)) {
         av.sessionActive = false;
         av.seatedCount = 0;
@@ -119,12 +117,11 @@ app.post("/v2/status/:id", (req, res) => {
         return res.json({
             xp: av.xp,
             level: av.level,
-            status: getStatus(0),
+            status: "OFF",
             seatedCount: 0
         });
     }
 
-    // =========================
     av.seatedCount = nowCount;
 
     if (av.sessionActive) {
@@ -136,7 +133,7 @@ app.post("/v2/status/:id", (req, res) => {
     res.json({
         xp: av.xp,
         level: av.level,
-        status: getStatus(av.seatedCount),
+        status: String(getStatus(av.seatedCount)),
         seatedCount: av.seatedCount
     });
 });
