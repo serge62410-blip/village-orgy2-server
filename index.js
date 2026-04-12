@@ -35,7 +35,6 @@ function xpNeeded(level) {
     return 100 + level * 20;
 }
 
-// =========================
 function update(av) {
     if (!av.last) av.last = Date.now();
     if (!av.seated || av.seatedCount <= 0) return;
@@ -58,7 +57,6 @@ function update(av) {
 }
 
 // =========================
-// 🔐 FIX 403 (QUERY KEY)
 function checkKey(req, res) {
     const key = (req.query.key || "").toString().trim();
 
@@ -90,12 +88,11 @@ app.post("/v2/status/:id", (req, res) => {
     av.seated = !!req.body.seated;
     av.seatedCount = Math.max(0, parseInt(req.body.seatedCount) || 0);
 
+    // 🔥 FIX : calcule XP avant reset
+    update(av);
+
     if (!av.seated || av.seatedCount <= 0) {
         av.last = Date.now();
-    }
-
-    if (av.seated) {
-        update(av);
     }
 
     save();
