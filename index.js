@@ -25,23 +25,19 @@ function save() {
 load();
 
 // =========================
-// 🎯 règles XP
 function xpRule(count) {
     return count >= 2
         ? { xp: 5, interval: 30000 }
         : { xp: 1, interval: 60000 };
 }
 
-// =========================
 function xpNeeded(level) {
     return 100 + level * 20;
 }
 
 // =========================
-// 🔥 UPDATE XP SANS CATCH-UP
 function update(av) {
     if (!av.last) av.last = Date.now();
-
     if (!av.seated || av.seatedCount <= 0) return;
 
     const now = Date.now();
@@ -73,7 +69,14 @@ function checkKey(req, res) {
 }
 
 // =========================
-// 🔥 CORE STATUS (FIX FINAL ANTI BUG)
+// 🔥 STATUS CENTRALISÉ
+function getStatus(count) {
+    if (count <= 0) return "OFF";
+    if (count === 1) return "WAIT";
+    return "FUCK";
+}
+
+// =========================
 app.post("/v2/status/:id", (req, res) => {
     if (!checkKey(req, res)) return;
 
@@ -97,7 +100,7 @@ app.post("/v2/status/:id", (req, res) => {
     const nowCount = Math.max(0, parseInt(req.body.seatedCount) || 0);
 
     // =========================
-    // 🔥 changement d’état = freeze propre du temps
+    // 🔥 reset propre transition
     if (wasSeated !== nowSeated) {
         av.last = Date.now();
     }
@@ -105,8 +108,6 @@ app.post("/v2/status/:id", (req, res) => {
     av.seated = nowSeated;
     av.seatedCount = nowCount;
 
-    // =========================
-    // 🔥 XP uniquement si actif
     if (av.seated && av.seatedCount > 0) {
         update(av);
     }
@@ -116,7 +117,9 @@ app.post("/v2/status/:id", (req, res) => {
     res.json({
         xp: av.xp,
         level: av.level,
-        multiplier: multiplier
+        multiplier: multiplier,
+        status: getStatus(av.seatedCount),
+        seatedCount: av.seatedCount
     });
 });
 
@@ -129,7 +132,6 @@ app.post("/v2/admin/multiplier/:v", (req, res) => {
     res.json({ multiplier });
 });
 
-// =========================
 app.post("/v2/admin/reset_all", (req, res) => {
     if (!checkKey(req, res)) return;
 
@@ -140,6 +142,4 @@ app.post("/v2/admin/reset_all", (req, res) => {
 });
 
 // =========================
-app.listen(3010, () => {
-    console.log("Server OK");
-});
+app.listen(3010, () => console.log("Server OK"));
