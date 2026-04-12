@@ -95,20 +95,20 @@ app.post("/v2/status/:id", (req, res) => {
 
     const av = avatars[id];
 
-    const nowSeated = !!req.body.seated;
-    const nowCount = Math.max(0, parseInt(req.body.seatedCount) || 0);
+    const seated = !!req.body.seated;
+    const count = Math.max(0, parseInt(req.body.seatedCount) || 0);
 
     // =========================
     // START SESSION
-    if (!av.active && nowSeated && nowCount > 0) {
+    if (!av.active && seated && count > 0) {
         av.active = true;
-        av.seatedCount = nowCount;
+        av.seatedCount = count;
         av.lastTick = Date.now();
     }
 
     // =========================
     // STOP SESSION
-    if (av.active && (!nowSeated || nowCount <= 0)) {
+    if (av.active && (!seated || count <= 0)) {
         av.active = false;
         av.seatedCount = 0;
 
@@ -122,7 +122,7 @@ app.post("/v2/status/:id", (req, res) => {
         });
     }
 
-    av.seatedCount = nowCount;
+    av.seatedCount = count;
 
     if (av.active) {
         processXP(av);
