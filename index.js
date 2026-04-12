@@ -100,8 +100,8 @@ app.post("/v2/event/:id", (req, res) =>
     if (!count) count = 0;
 
     // =========================
-    // STOP
-    if (seated === false || count <= 0)
+    // STOP SESSION
+    if (!seated || count <= 0)
     {
         av.active = false;
         av.seatedCount = 0;
@@ -118,7 +118,6 @@ app.post("/v2/event/:id", (req, res) =>
     // =========================
     av.seatedCount = count;
 
-    // =========================
     // RULE CORE
     if (av.seatedCount >= 2)
     {
@@ -165,4 +164,19 @@ app.post("/v2/admin/multiplier/:v", (req, res) =>
     res.json({ multiplier });
 });
 
-app.listen(3010, () => console.log("🔥 NODE CORE READY"));
+// =========================
+app.get("/v2/admin/top10", (req, res) =>
+{
+    if (!checkKey(req, res)) return;
+
+    let top = Object.entries(avatars)
+        .sort((a, b) => b[1].level - a[1].level)
+        .slice(0, 10)
+        .map((a, i) =>
+            `${i+1}. ${a[0]} | LVL ${a[1].level} | XP ${a[1].xp}`
+        );
+
+    res.send(top.join("\n"));
+});
+
+app.listen(3010, () => console.log("🔥 SYSTEM READY"));
