@@ -31,36 +31,14 @@ function xpRule(count) {
         : { xp: 1, interval: 60000 };
 }
 
+// =========================
 function xpNeeded(level) {
     return 100 + level * 20;
 }
 
 // =========================
-function update(av) {
-    if (!av.last) av.last = Date.now();
-    if (!av.seated || av.seatedCount <= 0) return;
-
-    const now = Date.now();
-    const rule = xpRule(av.seatedCount);
-
-    const diff = now - av.last;
-    const ticks = Math.floor(diff / rule.interval);
-
-    if (ticks <= 0) return;
-
-    av.last += ticks * rule.interval;
-    av.xp += ticks * rule.xp * multiplier;
-
-    while (av.xp >= xpNeeded(av.level)) {
-        av.xp -= xpNeeded(av.level);
-        av.level++;
-    }
-}
-
-// =========================
 function checkKey(req, res) {
     const key = (req.query.key || "").toString().trim();
-
     if (key !== SECRET) {
         res.status(403).json({ error: "Forbidden" });
         return false;
@@ -69,11 +47,36 @@ function checkKey(req, res) {
 }
 
 // =========================
-// 🔥 STATUS CENTRALISÉ
+// 🔥 STATUS LOGIC
 function getStatus(count) {
     if (count <= 0) return "OFF";
     if (count === 1) return "WAIT";
     return "FUCK";
+}
+
+// =========================
+// 🔥 CORE SESSION XP ENGINE (NO CATCH-UP)
+function processXP(av) {
+    if (!av.sessionActive) return;
+
+    const now = Date.now();
+    const rule = xpRule(av.seatedCount);
+
+    if (!av.lastTick) av.lastTick = now;
+
+    if (now - av.lastTick >= rule.interval) {
+        av.lastTick = now;
+
+        av.xp += rule.xp * multiplier;
+
+        let needed = xpNeeded(av.level);
+
+        while (av.xp >= needed) {
+            av.xp -= needed;
+            av.level++;
+            needed = xpNeeded(av.level);
+        }
+    }
 }
 
 // =========================
@@ -86,30 +89,46 @@ app.post("/v2/status/:id", (req, res) => {
         avatars[id] = {
             xp: 0,
             level: 1,
-            seated: false,
             seatedCount: 0,
-            last: Date.now()
+            sessionActive: false,
+            lastTick: 0
         };
     }
 
     const av = avatars[id];
 
-    const wasSeated = av.seated;
-
     const nowSeated = !!req.body.seated;
     const nowCount = Math.max(0, parseInt(req.body.seatedCount) || 0);
 
     // =========================
-    // 🔥 reset propre transition
-    if (wasSeated !== nowSeated) {
-        av.last = Date.now();
+    // 🪑 START SESSION
+    if (!av.sessionActive && nowSeated && nowCount > 0) {
+        av.sessionActive = true;
+        av.seatedCount = nowCount;
+        av.lastTick = Date.now(); // clean start
     }
 
-    av.seated = nowSeated;
+    // =========================
+    // 🧍 STOP SESSION
+    if (av.sessionActive && (!nowSeated || nowCount <= 0)) {
+        av.sessionActive = false;
+        av.seatedCount = 0;
+
+        save();
+
+        return res.json({
+            xp: av.xp,
+            level: av.level,
+            status: getStatus(0),
+            seatedCount: 0
+        });
+    }
+
+    // =========================
     av.seatedCount = nowCount;
 
-    if (av.seated && av.seatedCount > 0) {
-        update(av);
+    if (av.sessionActive) {
+        processXP(av);
     }
 
     save();
@@ -117,7 +136,6 @@ app.post("/v2/status/:id", (req, res) => {
     res.json({
         xp: av.xp,
         level: av.level,
-        multiplier: multiplier,
         status: getStatus(av.seatedCount),
         seatedCount: av.seatedCount
     });
