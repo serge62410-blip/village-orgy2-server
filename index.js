@@ -25,11 +25,6 @@ function save() {
 load();
 
 // =========================
-function xpRule(count) {
-    if (count >= 2) return { xp: 5, interval: 30000 };
-    return { xp: 1, interval: 60000 };
-}
-
 function xpNeeded(level) {
     return 100 + level * 20;
 }
@@ -47,7 +42,7 @@ function checkKey(req, res) {
 function getStatus(count) {
     if (count <= 0) return "OFF";
     if (count === 1) return "WAIT";
-    return "FUCK";
+    return "ACTIVE";
 }
 
 // =========================
@@ -58,12 +53,12 @@ function process(av) {
 
     if (!av.lastTick) av.lastTick = now;
 
-    let rule = xpRule(av.seatedCount);
+    const interval = 40000; // FIX: 40 sec
 
-    if (now - av.lastTick >= rule.interval) {
+    if (now - av.lastTick >= interval) {
         av.lastTick = now;
 
-        av.xp += rule.xp * multiplier;
+        av.xp += 5 * multiplier;
 
         let need = xpNeeded(av.level);
 
@@ -97,12 +92,7 @@ app.post("/v2/event/:id", (req, res) => {
 
     if (!count) count = 0;
 
-    // START SESSION
-    if (seated === true && count > 0 && av.active === false) {
-        av.active = true;
-        av.lastTick = Date.now();
-    }
-
+    // =========================
     // STOP SESSION
     if (seated === false || count <= 0) {
         av.active = false;
@@ -117,9 +107,22 @@ app.post("/v2/event/:id", (req, res) => {
         });
     }
 
+    // =========================
+    // UPDATE COUNT
     av.seatedCount = count;
 
-    if (av.active) process(av);
+    // =========================
+    // START ONLY IF 2+
+    if (av.seatedCount >= 2) {
+        av.active = true;
+    } else {
+        av.active = false;
+    }
+
+    // =========================
+    if (av.active) {
+        process(av);
+    }
 
     save();
 
@@ -131,22 +134,6 @@ app.post("/v2/event/:id", (req, res) => {
 });
 
 // =========================
-app.post("/v2/admin/reset", (req, res) => {
-    if (!checkKey(req, res)) return;
-
-    avatars = {};
-    save();
-
-    res.json({ ok: true });
+app.listen(3010, () => {
+    console.log("CORE FIXED READY");
 });
-
-app.post("/v2/admin/multiplier/:v", (req, res) => {
-    if (!checkKey(req, res)) return;
-
-    multiplier = parseInt(req.params.v);
-    if (!multiplier) multiplier = 1;
-
-    res.json({ multiplier });
-});
-
-app.listen(3010, () => console.log("NODE READY"));
