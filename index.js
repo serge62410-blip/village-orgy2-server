@@ -5,56 +5,94 @@ app.use(express.json());
 
 const SECRET = process.env.SECRET || "v0g2_secure_9XkP";
 
+// =========================
+let multiplier = 1;
+
 let avatars = {};
-let seats = 0;
+let seated = {};
 
-// auth
-app.use((req,res,next)=>{
+// =========================
+function calcLevel(xp)
+{
+    return Math.floor(xp / 100) + 1;
+}
+
+// =========================
+function top10()
+{
+    return Object.entries(avatars)
+        .sort((a,b)=>
+            (b[1].level*100+b[1].xp)-
+            (a[1].level*100+a[1].xp)
+        )
+        .slice(0,10);
+}
+
+// =========================
+app.post("/v2/admin",(req,res)=>{
     if(req.headers["x-secret"] !== SECRET)
-        return res.status(403).json({error:"Forbidden"});
-    next();
+        return res.status(403).json({error:"no access"});
+
+    const {action,user}=req.body;
+
+    if(action === "XP1") multiplier=1;
+    if(action === "XP2") multiplier=2;
+    if(action === "XP3") multiplier=3;
+    if(action === "XP5") multiplier=5;
+
+    if(action === "RESET")
+    {
+        avatars = {};
+        seated = {};
+    }
+
+    if(action === "TOP")
+    {
+        let t = top10()
+            .map(x => `${x[0]} L${x[1].level} XP${x[1].xp}`)
+            .join("\n");
+
+        return res.json({cmd:"TOP",data:t});
+    }
+
+    if(action === "ADMINS")
+    {
+        return res.json({cmd:"ADMINS",data:"Admin system active"});
+    }
+
+    res.json({cmd:"OK"});
 });
 
-// avatar
-app.get("/v2/avatar/:id",(req,res)=>{
-    const id = req.params.id;
-    if(!avatars[id]) avatars[id]={xp:0,level:1};
-    res.json(avatars[id]);
-});
+// =========================
+app.post("/v2/seat",(req,res)=>{
+    const {id,action}=req.body;
 
-app.post("/v2/avatar/:id",(req,res)=>{
-    const id=req.params.id;
-    const {xp,level}=req.body;
+    if(action==="SIT") seated[id]=true;
+    if(action==="UNSIT") delete seated[id];
 
-    if(typeof xp!=="number"||typeof level!=="number")
-        return res.status(400).json({error:"bad data"});
-
-    avatars[id]={xp,level};
     res.json({ok:true});
 });
 
-// seat system
-app.post("/v2/seat",(req,res)=>{
-    const {action}=req.body;
+// =========================
+app.post("/v2/xp",(req,res)=>{
+    const {id}=req.body;
 
-    if(action==="SIT") seats++;
-    if(action==="UNSIT") seats--;
+    if(!avatars[id])
+        avatars[id]={xp:0,level:1};
 
-    if(seats<0) seats=0;
+    if(Object.keys(seated).length < 2)
+        return res.json({skip:true});
 
-    res.json({active: seats>=2});
+    avatars[id].xp += 5 * multiplier;
+    avatars[id].level = calcLevel(avatars[id].xp);
+
+    res.json({
+        cmd:"HUD",
+        id,
+        xp:avatars[id].xp,
+        level:avatars[id].level
+    });
 });
 
-// top
-app.get("/v2/top",(req,res)=>{
-    let list=Object.entries(avatars);
-
-    list.sort((a,b)=>
-        (b[1].level*100+b[1].xp)-
-        (a[1].level*100+a[1].xp)
-    );
-
-    res.json(list.slice(0,10));
-});
-
-app.listen(3001,()=>console.log("V2 SERVER READY"));
+// =========================
+app.listen(3001,()=>console.log("NODE READY"));
