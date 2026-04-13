@@ -24,8 +24,8 @@ function calcLevel(xp)
 app.post("/v2/seat",(req,res)=>{
     const {id,action}=req.body;
 
-    if(action==="SIT") seated[id]=true;
-    if(action==="UNSIT") delete seated[id];
+    if(action === "SIT") seated[id]=true;
+    if(action === "UNSIT") delete seated[id];
 
     res.json({
         count: countPlayers(),
@@ -46,7 +46,7 @@ app.post("/v2/xp",(req,res)=>{
         return res.json({
             cmd:"NOTICE",
             id:id,
-            message:"⚠ " + id + " : You must have at least 2 players seated to activate XP system"
+            message:"⚠ You need at least 2 players seated to activate XP system"
         });
     }
 
