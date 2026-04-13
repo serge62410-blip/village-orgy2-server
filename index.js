@@ -3,98 +3,90 @@ const app = express();
 
 app.use(express.json());
 
-const SECRET = process.env.SECRET || "v0g2_secure_9XkP";
-
-let multiplier = 1;
 let avatars = {};
 let seated = {};
 
+let xpMultiplier = 1;
+
 // =========================
-function countPlayers()
+function countSeated()
 {
     return Object.keys(seated).length;
 }
 
-function calcLevel(xp)
+function level(xp)
 {
     return Math.floor(xp / 100) + 1;
 }
 
 // =========================
+// SEAT SYNC (REALTIME HEARTBEAT)
 app.post("/v2/seat",(req,res)=>{
     const {id,action}=req.body;
 
-    if(action === "SIT") seated[id]=true;
-    if(action === "UNSIT") delete seated[id];
+    if(action==="SIT")
+        seated[id]=Date.now();
 
-    let count = countPlayers();
+    if(action==="UNSIT")
+        delete seated[id];
 
-    res.json({
-        count: count,
-        active: count >= 2,
-        seated: Object.keys(seated)
-    });
+    res.json({count:countSeated()});
 });
 
 // =========================
+// CLEAN AFK SEATS
+setInterval(()=>{
+    let now = Date.now();
+
+    for(let id in seated)
+    {
+        if(now - seated[id] > 8000)
+            delete seated[id];
+    }
+},3000);
+
+// =========================
+// XP + COUPLE SYSTEM
 app.post("/v2/xp",(req,res)=>{
     const {id}=req.body;
 
     if(!avatars[id])
         avatars[id]={xp:0,level:1};
 
-    // 🚨 RULE 2 PLAYERS
-    if(countPlayers() < 2)
+    let count = countSeated();
+
+    // ❌ SOLO BLOCK
+    if(count < 2)
     {
         return res.json({
             cmd:"NOTICE",
-            id:id,
-            message:"⚠ You need at least 2 players seated to activate XP system"
+            id,
+            message:"⚠ System inactive. Need 2 players."
         });
     }
 
-    avatars[id].xp += 5 * multiplier;
-    avatars[id].level = calcLevel(avatars[id].xp);
+    // 🔥 BASE XP
+    let xpGain = 5;
+
+    // 💋 COUPLE BONUS
+    if(count === 2)
+        xpGain *= 2;
+
+    // 💦 GROUP BONUS
+    if(count >= 3)
+        xpGain *= 3;
+
+    avatars[id].xp += xpGain;
+    avatars[id].level = level(avatars[id].xp);
 
     return res.json({
         cmd:"HUD",
-        id:id,
+        id,
         xp:avatars[id].xp,
-        level:avatars[id].level
+        level:avatars[id].level,
+        bonus:xpGain
     });
 });
 
 // =========================
-app.post("/v2/admin",(req,res)=>{
-    if(req.headers["x-secret"] !== SECRET)
-        return res.status(403).json({error:"no access"});
-
-    const {action}=req.body;
-
-    if(action==="XP1") multiplier=1;
-    if(action==="XP2") multiplier=2;
-    if(action==="XP3") multiplier=3;
-    if(action==="XP5") multiplier=5;
-
-    if(action==="RESET")
-    {
-        avatars={};
-        seated={};
-    }
-
-    if(action==="TOP")
-    {
-        let t = Object.entries(avatars)
-        .sort((a,b)=>(b[1].level*100+b[1].xp)-(a[1].level*100+a[1].xp))
-        .slice(0,10)
-        .map(x=>`${x[0]} L${x[1].level} XP${x[1].xp}`)
-        .join("\n");
-
-        return res.json({cmd:"TOP",data:t});
-    }
-
-    res.json({cmd:"OK"});
-});
-
-// =========================
-app.listen(3001,()=>console.log("NODE READY"));
+app.listen(3001,()=>console.log("NODE READY REALTIME"));
