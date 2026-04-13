@@ -3,7 +3,7 @@ const app = express();
 
 app.use(express.json());
 
-const SECRET = process.env.SECRET || "abc123";
+const SECRET = process.env.SECRET || "v0g2_secure_9XkP";
 
 let multiplier = 1;
 let avatars = {};
