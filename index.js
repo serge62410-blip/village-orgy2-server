@@ -27,9 +27,12 @@ app.post("/v2/seat",(req,res)=>{
     if(action === "SIT") seated[id]=true;
     if(action === "UNSIT") delete seated[id];
 
+    let count = countPlayers();
+
     res.json({
-        count: countPlayers(),
-        active: countPlayers() >= 2
+        count: count,
+        active: count >= 2,
+        seated: Object.keys(seated)
     });
 });
 
@@ -40,7 +43,7 @@ app.post("/v2/xp",(req,res)=>{
     if(!avatars[id])
         avatars[id]={xp:0,level:1};
 
-    // 🚨 SOLO BLOCK
+    // 🚨 RULE 2 PLAYERS
     if(countPlayers() < 2)
     {
         return res.json({
