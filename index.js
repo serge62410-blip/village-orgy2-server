@@ -28,8 +28,8 @@ app.post("/v2/seat",(req,res)=>{
     if(action==="UNSIT") delete seated[id];
 
     res.json({
-        active: countPlayers() >= 2,
-        count: countPlayers()
+        count: countPlayers(),
+        active: countPlayers() >= 2
     });
 });
 
@@ -40,22 +40,22 @@ app.post("/v2/xp",(req,res)=>{
     if(!avatars[id])
         avatars[id]={xp:0,level:1};
 
-    // ❌ RULE: BLOCK IF SOLO
+    // 🚨 SOLO BLOCK
     if(countPlayers() < 2)
     {
         return res.json({
             cmd:"NOTICE",
-            id,
-            message:`⚠ ${id} : 2 players required to activate XP system`
+            id:id,
+            message:"⚠ " + id + " : You must have at least 2 players seated to activate XP system"
         });
     }
 
     avatars[id].xp += 5 * multiplier;
     avatars[id].level = calcLevel(avatars[id].xp);
 
-    res.json({
+    return res.json({
         cmd:"HUD",
-        id,
+        id:id,
         xp:avatars[id].xp,
         level:avatars[id].level
     });
