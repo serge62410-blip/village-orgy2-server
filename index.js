@@ -1,3 +1,5 @@
+// server Json V7 FULL SERVER
+
 const express = require("express");
 const app = express();
 
@@ -6,46 +8,45 @@ app.use(express.json());
 const SECRET = process.env.SECRET || "v0g2_secure_9XkP";
 
 let avatars = {};
-let seats = 0;
+let seated = new Set();
 
-// auth
+// CONFIG XP
+const XP_PER_TICK = 5;
+const TICK_RATE = 5000; // 5 sec
+
+// =====================
+// AUTH
+// =====================
 app.use((req,res,next)=>{
     if(req.headers["x-secret"] !== SECRET)
         return res.status(403).json({error:"Forbidden"});
     next();
 });
 
-// avatar
+// =====================
+// AVATAR
+// =====================
 app.get("/v2/avatar/:id",(req,res)=>{
     const id = req.params.id;
     if(!avatars[id]) avatars[id]={xp:0,level:1};
     res.json(avatars[id]);
 });
 
-app.post("/v2/avatar/:id",(req,res)=>{
-    const id=req.params.id;
-    const {xp,level}=req.body;
-
-    if(typeof xp!=="number"||typeof level!=="number")
-        return res.status(400).json({error:"bad data"});
-
-    avatars[id]={xp,level};
-    res.json({ok:true});
-});
-
-// seat system
+// =====================
+// SEAT SYSTEM
+// =====================
 app.post("/v2/seat",(req,res)=>{
-    const {action}=req.body;
+    const {action, id} = req.body;
 
-    if(action==="SIT") seats++;
-    if(action==="UNSIT") seats--;
+    if(action==="SIT") seated.add(id);
+    if(action==="UNSIT") seated.delete(id);
 
-    if(seats<0) seats=0;
-
-    res.json({active: seats>=2});
+    res.json({active: seated.size >= 2});
 });
 
-// top
+// =====================
+// TOP 10
+// =====================
 app.get("/v2/top",(req,res)=>{
     let list=Object.entries(avatars);
 
@@ -57,4 +58,24 @@ app.get("/v2/top",(req,res)=>{
     res.json(list.slice(0,10));
 });
 
-app.listen(3001,()=>console.log("V2 SERVER READY"));
+// =====================
+// XP ENGINE
+// =====================
+setInterval(()=>{
+    if(seated.size < 2) return;
+
+    seated.forEach(id=>{
+        if(!avatars[id]) avatars[id]={xp:0,level:1};
+
+        avatars[id].xp += XP_PER_TICK;
+
+        if(avatars[id].xp >= 100)
+        {
+            avatars[id].xp -= 100;
+            avatars[id].level += 1;
+        }
+    });
+
+}, TICK_RATE);
+
+app.listen(3001,()=>console.log("🔥 V7 SERVER READY"));
