@@ -4,18 +4,21 @@ const app = express();
 app.use(express.json());
 
 const SECRET = "v0g2_secure_9XkP";
+const PORT = process.env.PORT || 3001;
 
 let avatars = {};
 
-app.use((req,res,next)=>{
-    if(req.query.secret !== SECRET)
+function checkSecret(req,res,next)
+{
+    const s = req.query.secret || req.body.secret;
+    if(s !== SECRET)
         return res.status(403).json({error:"Forbidden"});
     next();
-});
+}
 
-app.post("/v2/xp/:id",(req,res)=>{
+app.post("/v2/xp/:id",checkSecret,(req,res)=>{
     const id = req.params.id;
-    const amount = req.body.amount;
+    const amount = Number(req.body.amount || 0);
 
     if(!avatars[id])
         avatars[id] = {xp:0,level:1};
@@ -31,9 +34,9 @@ app.post("/v2/xp/:id",(req,res)=>{
     res.json(avatars[id]);
 });
 
-app.post("/v2/reset",(req,res)=>{
+app.post("/v2/reset",checkSecret,(req,res)=>{
     avatars = {};
     res.json({ok:true});
 });
 
-app.listen(3001,()=>console.log("SERVER READY"));
+app.listen(PORT,()=>console.log("SERVER READY"));
