@@ -8,20 +8,16 @@ const PORT = process.env.PORT || 3001;
 
 let avatars = {};
 
-// =========================
 function checkSecret(req, res, next)
 {
     const s = req.query.secret || req.body.secret;
 
     if(s !== SECRET)
-    {
         return res.status(403).json({ error: "Forbidden" });
-    }
 
     next();
 }
 
-// =========================
 app.post("/v2/xp/global", checkSecret, (req, res) => {
 
     const amount = Number(req.body.amount || 0);
@@ -34,9 +30,7 @@ app.post("/v2/xp/global", checkSecret, (req, res) => {
         const id = users[i];
 
         if(!avatars[id])
-        {
             avatars[id] = { xp: 0, level: 1 };
-        }
 
         avatars[id].xp += amount;
 
@@ -46,7 +40,6 @@ app.post("/v2/xp/global", checkSecret, (req, res) => {
             avatars[id].level++;
         }
 
-        // FORMAT SIMPLE (IMPORTANT POUR LSL)
         result.push(id + "," + avatars[id].xp + "," + avatars[id].level);
     }
 
@@ -55,15 +48,11 @@ app.post("/v2/xp/global", checkSecret, (req, res) => {
     });
 });
 
-// =========================
 app.post("/v2/reset", checkSecret, (req, res) => {
-
     avatars = {};
-
     res.json({ ok: true });
 });
 
-// =========================
 app.listen(PORT, () => {
     console.log("SERVER READY");
 });
