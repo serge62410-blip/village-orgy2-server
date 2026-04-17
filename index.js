@@ -1,3 +1,4 @@
+console.log("🔥 SERVER STARTING...");
 const express = require("express");
 const app = express();
 
