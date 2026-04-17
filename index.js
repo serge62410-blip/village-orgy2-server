@@ -8,35 +8,65 @@ const PORT = process.env.PORT || 3001;
 
 let avatars = {};
 
-function checkSecret(req,res,next)
+// =========================
+function checkSecret(req, res, next)
 {
     const s = req.query.secret || req.body.secret;
+
     if(s !== SECRET)
-        return res.status(403).json({error:"Forbidden"});
+    {
+        return res.status(403).json({ error: "Forbidden" });
+    }
+
     next();
 }
 
-app.post("/v2/xp/:id",checkSecret,(req,res)=>{
-    const id = req.params.id;
-    const amount = Number(req.body.amount || 0);
+// =========================
+app.post("/v2/xp/global", checkSecret, (req, res) => {
 
-    if(!avatars[id])
-        avatars[id] = {xp:0,level:1};
+    const amount = Number(req.body.amount);
+    const users = req.body.users || [];
 
-    avatars[id].xp += amount;
+    let result = [];
 
-    while(avatars[id].xp >= 100)
+    let i;
+
+    for(i = 0; i < users.length; i++)
     {
-        avatars[id].xp -= 100;
-        avatars[id].level++;
+        const id = users[i];
+
+        if(!avatars[id])
+        {
+            avatars[id] = { xp: 0, level: 1 };
+        }
+
+        avatars[id].xp += amount;
+
+        while(avatars[id].xp >= 100)
+        {
+            avatars[id].xp -= 100;
+            avatars[id].level++;
+        }
+
+        result.push({
+            id: id,
+            xp: avatars[id].xp,
+            level: avatars[id].level
+        });
     }
 
-    res.json(avatars[id]);
+    return res.json({ result: result });
 });
 
-app.post("/v2/reset",checkSecret,(req,res)=>{
+// =========================
+app.post("/v2/reset", checkSecret, (req, res) => {
+
     avatars = {};
-    res.json({ok:true});
+
+    return res.json({ ok: true });
 });
 
-app.listen(PORT,()=>console.log("SERVER READY"));
+// =========================
+app.listen(PORT, () => {
+    console.log("SERVER READY");
+});
