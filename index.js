@@ -1,4 +1,3 @@
-console.log("🔥 SERVER STARTING...");
 const express = require("express");
 const app = express();
 
@@ -9,6 +8,7 @@ const PORT = process.env.PORT || 3001;
 
 let avatars = {};
 
+// =========================
 function checkSecret(req, res, next)
 {
     const s = req.query.secret || req.body.secret;
@@ -19,6 +19,12 @@ function checkSecret(req, res, next)
     next();
 }
 
+// =========================
+app.get("/", (req, res) => {
+    res.send("SERVER ONLINE");
+});
+
+// =========================
 app.post("/v2/xp/global", checkSecret, (req, res) => {
 
     const amount = Number(req.body.amount || 0);
@@ -44,16 +50,18 @@ app.post("/v2/xp/global", checkSecret, (req, res) => {
         result.push(id + "," + avatars[id].xp + "," + avatars[id].level);
     }
 
-    res.json({
-        result: result.join("|")
-    });
+    res.json({ result: result.join("|") });
 });
 
+// =========================
 app.post("/v2/reset", checkSecret, (req, res) => {
+
     avatars = {};
+
     res.json({ ok: true });
 });
 
+// =========================
 app.listen(PORT, () => {
-    console.log("SERVER READY");
+    console.log("SERVER READY ON PORT", PORT);
 });
