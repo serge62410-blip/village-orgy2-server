@@ -24,7 +24,7 @@ function checkSecret(req, res, next)
 // =========================
 app.post("/v2/xp/global", checkSecret, (req, res) => {
 
-    const amount = Number(req.body.amount);
+    const amount = Number(req.body.amount || 0);
     const users = req.body.users || [];
 
     let result = [];
@@ -55,7 +55,10 @@ app.post("/v2/xp/global", checkSecret, (req, res) => {
         });
     }
 
-    return res.json({ result: result });
+    // 🔥 IMPORTANT : stringifié pour LSL safe parsing
+    return res.json({
+        result: JSON.stringify(result)
+    });
 });
 
 // =========================
