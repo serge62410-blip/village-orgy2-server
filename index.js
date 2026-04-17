@@ -46,40 +46,13 @@ app.post("/v2/xp/global", checkSecret, (req, res) => {
             avatars[id].level++;
         }
 
-        result.push({
-            id: id,
-            xp: avatars[id].xp,
-            level: avatars[id].level
-        });
+        // FORMAT SIMPLE (IMPORTANT POUR LSL)
+        result.push(id + "," + avatars[id].xp + "," + avatars[id].level);
     }
 
-    return res.json({
-        result: JSON.stringify(result)
+    res.json({
+        result: result.join("|")
     });
-});
-
-// =========================
-// 🔥 NOUVEAU CONTROL NODE → LSL
-// =========================
-app.post("/v2/admin", checkSecret, (req, res) => {
-
-    const action = req.body.action;
-    const value = Number(req.body.value || 0);
-
-    if(action === "reset")
-    {
-        return res.json({ cmd: "RESET" });
-    }
-
-    if(action === "setxp")
-    {
-        return res.json({
-            cmd: "SETXP",
-            value: value
-        });
-    }
-
-    return res.json({ error: "unknown" });
 });
 
 // =========================
@@ -87,7 +60,7 @@ app.post("/v2/reset", checkSecret, (req, res) => {
 
     avatars = {};
 
-    return res.json({ ok: true });
+    res.json({ ok: true });
 });
 
 // =========================
