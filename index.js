@@ -1,7 +1,7 @@
 const express = require("express");
 const app = express();
 
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json());
 
 const SECRET = "v0g2_secure_9XkP";
 
@@ -29,9 +29,6 @@ app.post("/avatar/:id", (req, res) => {
 
     let xp = Number(req.body.xp ?? 0);
     let level = Number(req.body.level ?? 1);
-
-    if (xp < 0) xp = 0;
-    if (level < 1) level = 1;
 
     avatars[id] = { xp, level };
 
