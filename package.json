@@ -1,9 +1,10 @@
 {
-  "name": "village-orgy2-server",
+  "name": "sl-xp-server",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "LSL XP system backend",
+  "main": "server.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.18.2"
