@@ -3,65 +3,87 @@ const app = express();
 
 app.use(express.json());
 
+// 🔐 SECURITY KEY
 const SECRET = "v0g2_secure_9XkP";
-const PORT = process.env.PORT || 3001;
 
+// 🧠 DATABASE MEMORY
 let avatars = {};
 
 // =========================
-function checkSecret(req, res, next)
-{
-    const s = req.query.secret || req.body.secret;
-
-    if(s !== SECRET)
-        return res.status(403).json({ error: "Forbidden" });
-
-    next();
-}
-
+// SECURITY MIDDLEWARE
 // =========================
-app.get("/", (req, res) => {
-    res.send("SERVER ONLINE");
+app.use((req, res, next) => {
+    if (req.headers["x-secret"] !== SECRET) {
+        return res.status(403).send("Forbidden");
+    }
+    next();
 });
 
 // =========================
-app.post("/v2/xp/global", checkSecret, (req, res) => {
+// GET AVATAR
+// =========================
+app.get("/avatar/:id", (req, res) => {
+    const id = req.params.id;
 
-    const amount = Number(req.body.amount || 0);
-    const users = req.body.users || [];
-
-    let result = [];
-
-    for(let i = 0; i < users.length; i++)
-    {
-        const id = users[i];
-
-        if(!avatars[id])
-            avatars[id] = { xp: 0, level: 1 };
-
-        avatars[id].xp += amount;
-
-        while(avatars[id].xp >= 100)
-        {
-            avatars[id].xp -= 100;
-            avatars[id].level++;
-        }
-
-        result.push(id + "," + avatars[id].xp + "," + avatars[id].level);
+    if (!avatars[id]) {
+        avatars[id] = {
+            xp: 0,
+            level: 1
+        };
     }
 
-    res.json({ result: result.join("|") });
+    res.json(avatars[id]);
 });
 
 // =========================
-app.post("/v2/reset", checkSecret, (req, res) => {
+// SAVE AVATAR
+// =========================
+app.post("/avatar/:id", (req, res) => {
+    const id = req.params.id;
 
-    avatars = {};
+    let xp = req.body.xp ?? 0;
+    let level = req.body.level ?? 1;
 
-    res.json({ ok: true });
+    // sécurité anti valeurs absurdes
+    if (xp < 0) xp = 0;
+    if (level < 1) level = 1;
+
+    avatars[id] = { xp, level };
+
+    res.json({
+        status: "saved",
+        id,
+        xp,
+        level
+    });
 });
 
 // =========================
+// TOP 10
+// =========================
+app.get("/top", (req, res) => {
+    let list = Object.entries(avatars);
+
+    list.sort((a, b) => {
+        let scoreA = (a[1].level * 100) + a[1].xp;
+        let scoreB = (b[1].level * 100) + b[1].xp;
+        return scoreB - scoreA;
+    });
+
+    let top = list.slice(0, 10).map(([id, data]) => ({
+        id,
+        xp: data.xp,
+        level: data.level
+    }));
+
+    res.json(top);
+});
+
+// =========================
+// START SERVER
+// =========================
+const PORT = process.env.PORT || 3002;
+
 app.listen(PORT, () => {
-    console.log("SERVER READY ON PORT", PORT);
+    console.log("🔥 NODE SERVER RUNNING ON PORT " + PORT);
 });
