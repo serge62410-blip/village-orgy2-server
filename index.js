@@ -1,16 +1,16 @@
 const express = require("express");
 const app = express();
 
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
 
-// 🔐 SECURITY KEY
+// 🔐 SECURITY KEY (TON SYSTEME)
 const SECRET = "v0g2_secure_9XkP";
 
-// 🧠 DATABASE MEMORY
+// 🧠 DATABASE MEMORY (XP / LEVEL)
 let avatars = {};
 
 // =========================
-// SECURITY MIDDLEWARE
+// AUTH MIDDLEWARE
 // =========================
 app.use((req, res, next) => {
     if (req.headers["x-secret"] !== SECRET) {
@@ -41,10 +41,10 @@ app.get("/avatar/:id", (req, res) => {
 app.post("/avatar/:id", (req, res) => {
     const id = req.params.id;
 
-    let xp = req.body.xp ?? 0;
-    let level = req.body.level ?? 1;
+    let xp = Number(req.body.xp ?? 0);
+    let level = Number(req.body.level ?? 1);
 
-    // sécurité anti valeurs absurdes
+    // sécurité anti valeurs cassées
     if (xp < 0) xp = 0;
     if (level < 1) level = 1;
 
@@ -65,12 +65,11 @@ app.get("/top", (req, res) => {
     let list = Object.entries(avatars);
 
     list.sort((a, b) => {
-        let scoreA = (a[1].level * 100) + a[1].xp;
-        let scoreB = (b[1].level * 100) + b[1].xp;
-        return scoreB - scoreA;
+        return (b[1].level * 100 + b[1].xp) -
+               (a[1].level * 100 + a[1].xp);
     });
 
-    let top = list.slice(0, 10).map(([id, data]) => ({
+    const top = list.slice(0, 10).map(([id, data]) => ({
         id,
         xp: data.xp,
         level: data.level
@@ -80,10 +79,17 @@ app.get("/top", (req, res) => {
 });
 
 // =========================
-// START SERVER
+// HEALTH CHECK (Render safe)
+// =========================
+app.get("/", (req, res) => {
+    res.send("Village Orgy2 Server ONLINE");
+});
+
+// =========================
+// START
 // =========================
 const PORT = process.env.PORT || 3002;
 
 app.listen(PORT, () => {
-    console.log("🔥 NODE SERVER RUNNING ON PORT " + PORT);
+    console.log("🔥 SERVER RUNNING ON PORT " + PORT);
 });
