@@ -1,6 +1,7 @@
 {
   "name": "village-orgy2-server",
   "version": "1.0.0",
+  "description": "LSL XP system backend server",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
