@@ -1,1 +1,10 @@
-{}
+{
+  "uuid-example-1": {
+    "xp": 45,
+    "level": 2
+  },
+  "uuid-example-2": {
+    "xp": 120,
+    "level": 3
+  }
+}
