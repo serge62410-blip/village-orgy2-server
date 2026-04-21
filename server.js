@@ -5,10 +5,9 @@ app.use(express.json());
 
 const SECRET = "v0g2_secure_9XkP";
 
+// mémoire (stable runtime)
 let avatars = {};
 
-// =========================
-// SECURITY
 // =========================
 app.use((req,res,next)=>{
     if(req.headers["x-secret"] !== SECRET)
@@ -17,7 +16,7 @@ app.use((req,res,next)=>{
 });
 
 // =========================
-// GET AVATAR
+// GET
 // =========================
 app.get("/avatar/:id",(req,res)=>{
     const id = req.params.id;
@@ -29,19 +28,23 @@ app.get("/avatar/:id",(req,res)=>{
 });
 
 // =========================
-// SAVE AVATAR
+// SAVE
 // =========================
 app.post("/avatar/:id",(req,res)=>{
     const id = req.params.id;
     const { xp, level } = req.body;
 
-    avatars[id] = { xp, level };
+    if(!avatars[id])
+        avatars[id] = {};
+
+    avatars[id].xp = xp;
+    avatars[id].level = level;
 
     res.json({status:"ok"});
 });
 
 // =========================
-// SYNC (IMPORTANT FIX)
+// SYNC SAFE (IMPORTANT FIX)
 // =========================
 app.get("/sync/:id",(req,res)=>{
     const id = req.params.id;
@@ -49,23 +52,8 @@ app.get("/sync/:id",(req,res)=>{
     if(!avatars[id])
         avatars[id] = { xp:0, level:1 };
 
-    res.json({
-        xp: avatars[id].xp,
-        level: avatars[id].level
-    });
+    res.json(avatars[id]);
 });
 
 // =========================
-// TOP 10
-// =========================
-app.get("/top",(req,res)=>{
-    let list = Object.entries(avatars);
-
-    list.sort((a,b)=>{
-        return (b[1].level*100 + b[1].xp) - (a[1].level*100 + a[1].xp);
-    });
-
-    res.json(list.slice(0,10));
-});
-
-app.listen(3000,()=>console.log("Server running"));
+app.listen(3000,()=>console.log("SERVER OK"));
