@@ -4,35 +4,34 @@ const fs = require("fs");
 const app = express();
 app.use(express.json());
 
-const PORT = process.env.PORT || 3000;
 const SECRET = "v0g2_secure_9XkP";
 
-const DATA_FILE = "./data.json";
+let avatars = {};
 
 // =========================
-// LOAD / SAVE
+// LOAD SAVE (FIX RESTART)
 // =========================
 
 function loadData()
 {
-    if(!fs.existsSync(DATA_FILE))
+    if(fs.existsSync("data.json"))
     {
-        fs.writeFileSync(DATA_FILE, JSON.stringify({avatars:{}}, null, 2));
+        avatars = JSON.parse(fs.readFileSync("data.json"));
     }
-
-    return JSON.parse(fs.readFileSync(DATA_FILE));
 }
 
-function saveData(data)
+function saveData()
 {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+    fs.writeFileSync("data.json", JSON.stringify(avatars,null,2));
 }
+
+loadData();
 
 // =========================
 // SECURITY
 // =========================
 
-app.use((req,res,next)=>{
+app.use((req,res,next) => {
     if(req.headers["x-secret"] !== SECRET)
     {
         return res.status(403).send("Forbidden");
@@ -41,57 +40,57 @@ app.use((req,res,next)=>{
 });
 
 // =========================
-// AVATAR GET
+// UPDATE AVATAR
 // =========================
 
-app.get("/avatar/:id",(req,res)=>{
-    let data = loadData();
-    let id = req.params.id;
+app.post("/avatar/:id",(req,res) => {
+    const id = req.params.id;
 
-    if(!data.avatars[id])
-    {
-        data.avatars[id] = { xp:0, level:1 };
-        saveData(data);
-    }
+    avatars[id] = {
+        xp:req.body.xp,
+        level:req.body.level
+    };
 
-    res.json(data.avatars[id]);
+    saveData();
+
+    res.json({status:"saved"});
 });
 
 // =========================
-// SYNC
+// GET AVATAR
 // =========================
 
-app.get("/sync/:id",(req,res)=>{
-    let data = loadData();
-    let id = req.params.id;
+app.get("/avatar/:id",(req,res) => {
+    const id = req.params.id;
 
-    if(!data.avatars[id])
+    if(!avatars[id])
     {
-        data.avatars[id] = { xp:0, level:1 };
-        saveData(data);
+        avatars[id] = {xp:0,level:1};
     }
 
-    res.json(data.avatars[id]);
+    res.json(avatars[id]);
 });
 
 // =========================
-// SAVE
+// RESYNC ALL (IMPORTANT FIX)
 // =========================
 
-app.post("/avatar/:id",(req,res)=>{
-    let data = loadData();
-    let id = req.params.id;
+app.get("/resync",(req,res) => {
+    let list = [];
 
-    if(!data.avatars[id])
+    for(let id in avatars)
     {
-        data.avatars[id] = { xp:0, level:1 };
+        list.push([id,avatars[id].xp,avatars[id].level]);
     }
 
-    data.avatars[id].xp = req.body.xp;
-    data.avatars[id].level = req.body.level;
+    res.json(list);
+});
 
-    saveData(data);
+// =========================
+// HEARTBEAT
+// =========================
 
+app.post("/heartbeat",(req,res) => {
     res.json({status:"ok"});
 });
 
@@ -99,22 +98,20 @@ app.post("/avatar/:id",(req,res)=>{
 // TOP 10
 // =========================
 
-app.get("/top",(req,res)=>{
-    let data = loadData();
-    let list = Object.entries(data.avatars);
+app.get("/top",(req,res) => {
+    let list = Object.entries(avatars);
 
-    list.sort((a,b)=>{
-        return (b[1].level * 100 + b[1].xp) -
-               (a[1].level * 100 + a[1].xp);
+    list.sort((a,b) => {
+        return (b[1].level*100 + b[1].xp) - (a[1].level*100 + a[1].xp);
     });
 
     res.json(list.slice(0,10));
 });
 
 // =========================
-// START SERVER
+// START
 // =========================
 
-app.listen(PORT,"0.0.0.0",()=>{
-    console.log("🚀 Server running on port " + PORT);
+app.listen(3000, () => {
+    console.log("SERVER V7.6 RUNNING");
 });
