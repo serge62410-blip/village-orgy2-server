@@ -7,14 +7,18 @@ const SECRET = "v0g2_secure_9XkP";
 
 let avatars = {};
 
-// sécurité
+// =========================
+// SECURITY
+// =========================
 app.use((req,res,next)=>{
     if(req.headers["x-secret"] !== SECRET)
         return res.status(403).send("Forbidden");
     next();
 });
 
-// get avatar
+// =========================
+// GET AVATAR
+// =========================
 app.get("/avatar/:id",(req,res)=>{
     const id = req.params.id;
 
@@ -24,7 +28,9 @@ app.get("/avatar/:id",(req,res)=>{
     res.json(avatars[id]);
 });
 
-// save avatar
+// =========================
+// SAVE AVATAR
+// =========================
 app.post("/avatar/:id",(req,res)=>{
     const id = req.params.id;
     const { xp, level } = req.body;
@@ -34,7 +40,24 @@ app.post("/avatar/:id",(req,res)=>{
     res.json({status:"ok"});
 });
 
-// top
+// =========================
+// SYNC (IMPORTANT FIX)
+// =========================
+app.get("/sync/:id",(req,res)=>{
+    const id = req.params.id;
+
+    if(!avatars[id])
+        avatars[id] = { xp:0, level:1 };
+
+    res.json({
+        xp: avatars[id].xp,
+        level: avatars[id].level
+    });
+});
+
+// =========================
+// TOP 10
+// =========================
 app.get("/top",(req,res)=>{
     let list = Object.entries(avatars);
 
